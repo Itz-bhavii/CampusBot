@@ -1,0 +1,34 @@
+package com.training.training.Controllers;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.training.training.Entities.Querry;
+import com.training.training.Entities.SampleTextForFlask;
+import com.training.training.Services.IngestionService;
+import com.training.training.Services.QuerryService;
+
+@RestController
+@RequestMapping("/api")
+public class PythonController {
+
+    @Autowired
+    private IngestionService ingestionService;
+
+    @Autowired
+    private QuerryService querryService;
+
+    @PostMapping("/ingest")
+    public String addDataInFlask(@RequestBody SampleTextForFlask text){
+        return ingestionService.sendDataToFlask(text);
+    }
+
+    @PostMapping("/chat")
+    public String sendQuestion(@RequestBody Querry querry){
+        return querryService.sendQuerryToFlask(querry);
+
+    }
+}
