@@ -12,14 +12,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.training.training.Entities.ContentOfFileFromFlask;
+import com.training.training.DTO.ContentDTO;
+import com.training.training.DTO.PathDTO;
 
 @Service
 public class IngestionService {
     @Autowired
     private RestTemplate restTemplate;
 
-    public ContentOfFileFromFlask getFile(MultipartFile receivedFile){
+    public ContentDTO getFile(MultipartFile receivedFile){
         String uploadUrl = "D:/Temp/uploads/";
         File directory = new File(uploadUrl);
         if(!directory.exists()){
@@ -32,12 +33,32 @@ public class IngestionService {
             System.out.println(e);
         }
 
-        Object filePathObj = new Object(){
-            public String filePath = path.toString();
-        };
+        PathDTO pathDTO = new PathDTO(path.toString());
         
-        String url = "http://127.0.0.1:5000/embed";
-        ContentOfFileFromFlask content = restTemplate.postForObject(url,filePathObj,ContentOfFileFromFlask.class);
+        String url = "http://127.0.0.1:5000/ingest";
+        ContentDTO content = restTemplate.postForObject(url,pathDTO,ContentDTO.class);
+        return content;
+    }
+
+
+    public ContentDTO getImage(MultipartFile image){
+        String uploadLoc = "D:/Temp/uploads/";
+        File directory = new File(uploadLoc);
+        if(!directory.exists()){
+            directory.mkdir();
+        }
+        Path path = Paths.get(uploadLoc + image.getOriginalFilename());
+        try{
+            Files.write(path, image.getBytes());
+        } catch(Exception e){
+            System.out.println(e);
+        }
+
+        PathDTO pathDTO = new PathDTO(path.toString());
+
+        String url = "http://127.0.0.1:5000/ingest-image";
+        ContentDTO content = restTemplate.postForObject(url,pathDTO, ContentDTO.class);
+
         return content;
     }
 }

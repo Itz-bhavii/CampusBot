@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.training.training.DTO.ContentDTO;
 import com.training.training.Entities.Querry;
-import com.training.training.Entities.ContentOfFileFromFlask;
 import com.training.training.Services.IngestionService;
 import com.training.training.Services.QuerryService;
 
@@ -26,6 +26,11 @@ public class PythonController {
     @PostMapping("/ingest")
     public String addDataInFlask(@RequestParam("file") MultipartFile file){
         return ingestionService.getFile(file).getcontent();
+    }
+
+    @PostMapping("/ingest-image")
+    public String sendImageToFlask(@RequestParam("image") MultipartFile image){
+        return ingestionService.getImage(image).getcontent();
     }
 
     @PostMapping("/chat")

@@ -1,9 +1,9 @@
-package com.training.training.Entities;
+package com.training.training.DTO;
 
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
-public class ContentOfFileFromFlask {
+public class ContentDTO {
     String content;
 
     public String getcontent() {

@@ -5,6 +5,8 @@ import os
 import uuid
 import chromadb
 import pymupdf
+from PIL import Image
+import pytesseract
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
@@ -13,37 +15,54 @@ API_KEY = os.getenv("API_KEY")
 app = Flask(__name__)
 chromaClient = chromadb.HttpClient(host="localhost",port=8000)
 googleClient = genai.Client(api_key=API_KEY)
+pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
 
+chromaClient.delete_collection("practice_collection")
 collection = chromaClient.get_or_create_collection("practice_collection")
 
-# chromaClient.delete_collection("practice_collection")
 
-@app.route('/embed',methods = ['POST'])
+
+@app.route("/ingest-image",methods = ['POST'])
+def getImage():
+    content = request.get_json()
+    imagePath = content["path"]
+    image = Image.open(imagePath)
+    imageDataText = pytesseract.image_to_string(image)
+    finalText = extractAndStoreText(imageDataText) 
+    textToReturn = {
+        "content" : str(finalText)
+    }
+    return jsonify(textToReturn)
+
+
+
+@app.route('/ingest',methods = ['POST'])
 def addText():
     content = request.get_json()
-    fileName = content["filePath"]
+    fileName = content["path"]
     doc = pymupdf.open(fileName)
     fullText = ""
     for page in doc:
         fullText += page.get_text() + "\n"
 
-    primaryChunks = fullText.split("\n\n")
-    finalText = []
-    for chunk in primaryChunks:
-        if(len(chunk) > 1000):
-            smallChunk = chunk.split("\n")
-            for small in smallChunk:
-                finalText.append(small)
-        else:
-            finalText.append(chunk)
+    # primaryChunks = fullText.split("\n\n")
+    # finalText = []
+    # for chunk in primaryChunks:
+    #     if(len(chunk) > 1000):
+    #         smallChunk = chunk.split("\n")
+    #         for small in smallChunk:
+    #             finalText.append(small)
+    #     else:
+    #         finalText.append(chunk)
         
-    if finalText:
-        uuids = [str(uuid.uuid4()) for _ in finalText]
-        collection.add(
-            ids= uuids,
-            documents= finalText
-        )
-    
+    # if finalText:
+    #     uuids = [str(uuid.uuid4()) for _ in finalText]
+    #     collection.add(
+    #         ids= uuids,
+    #         documents= finalText
+    #     )
+    finalText = extractAndStoreText(fullText)
+
     textToReturn = {
         "content" : str(finalText)
     }
@@ -78,5 +97,29 @@ def getQuerry():
     }
     return jsonify(ans)
 
+
+def cleanText(text):
+    cleanedText = ' '.join(str(text).split())
+    return cleanedText
+
+def extractAndStoreText(fullText):
+    primaryChunks = fullText.split("\n\n")
+    finalText = []
+    for chunk in primaryChunks:
+        if(len(chunk) > 1000):
+            smallChunk = chunk.split("\n")
+            for small in smallChunk:
+                finalText.append(cleanText(small))
+        else:
+            finalText.append(cleanText(chunk))
+        
+    if finalText:
+        uuids = [str(uuid.uuid4()) for _ in finalText]
+        collection.add(
+            ids= uuids,
+            documents= finalText
+        )
+
+    return finalText
 
 app.run(debug=True)

@@ -8,8 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.training.training.DTO.ContentDTO;
 import com.training.training.Entities.Course;
-import com.training.training.Entities.ContentOfFileFromFlask;
 import com.training.training.Services.CourseService;
 import com.training.training.Services.IngestionService;
 
