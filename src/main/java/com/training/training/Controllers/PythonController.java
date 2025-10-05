@@ -4,10 +4,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.training.training.Entities.Querry;
-import com.training.training.Entities.SampleTextForFlask;
+import com.training.training.Entities.ContentOfFileFromFlask;
 import com.training.training.Services.IngestionService;
 import com.training.training.Services.QuerryService;
 
@@ -22,8 +24,8 @@ public class PythonController {
     private QuerryService querryService;
 
     @PostMapping("/ingest")
-    public String addDataInFlask(@RequestBody SampleTextForFlask text){
-        return ingestionService.sendDataToFlask(text);
+    public String addDataInFlask(@RequestParam("file") MultipartFile file){
+        return ingestionService.getFile(file).getcontent();
     }
 
     @PostMapping("/chat")
