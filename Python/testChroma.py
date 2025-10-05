@@ -15,4 +15,4 @@ result = collection.query(
     query_texts=["What are the library hours?"],
     n_results=1
 )
-print(result)
+print(result["documents"])
