@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.training.training.DTO.ContentDTO;
 import com.training.training.Entities.Querry;
 import com.training.training.Services.IngestionService;
 import com.training.training.Services.QuerryService;

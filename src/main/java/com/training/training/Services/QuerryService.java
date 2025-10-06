@@ -3,7 +3,6 @@ package com.training.training.Services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.training.training.DTO.AnswerDTO;
 import com.training.training.Entities.Querry;
