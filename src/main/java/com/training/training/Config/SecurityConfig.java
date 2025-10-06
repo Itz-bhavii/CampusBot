@@ -9,26 +9,35 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.training.training.Filters.JwtAuthFilter;
 import com.training.training.Services.CustomUserDetailsService;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.convert.PeriodFormat;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig{
+
+    @Autowired
+    JwtAuthFilter jwtAuthFilter;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         http.csrf(csrf->csrf.disable())
-        .authorizeHttpRequests(auth-> auth.requestMatchers(HttpMethod.GET,"/api/courses/**","/h2-console/**").permitAll()
-        .anyRequest().authenticated())
-        .httpBasic(withDefaults());
+        .authorizeHttpRequests(auth-> auth.requestMatchers("/api/authenticate/**").permitAll()
+        .requestMatchers(HttpMethod.GET,"/api/courses/**","/h2-console/**").permitAll()
+        .anyRequest().authenticated());
+        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
@@ -42,6 +51,7 @@ public class SecurityConfig{
         return new BCryptPasswordEncoder();
     }
 
+    @Bean
     public AuthenticationManager authenticationManager(CustomUserDetailsService userDetailsService,PasswordEncoder passwordEncoder){
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
         daoAuthenticationProvider.setUserDetailsService(userDetailsService);
