@@ -8,6 +8,9 @@ from flask import Flask,request,jsonify;
 from google import genai
 from dotenv import load_dotenv
 from chromadb.utils import embedding_functions
+from unstructured.partition.pdf import partition_pdf
+
+# POPPLER_PATH_BIN = r"D:\Temp\Python Libraries\poppler-25.07.0\Library\bin"
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
@@ -44,10 +47,10 @@ def getImage():
 def addText():
     content = request.get_json()
     fileName = content["path"]
-    doc = pymupdf.open(fileName)
+    doc = partition_pdf(fileName,strategy="hi_res")
     fullText = ""
     for page in doc:
-        fullText += page.get_text() + "\n"
+        fullText += page.text + "\n"
 
     # primaryChunks = fullText.split("\n\n")
     # finalText = []
