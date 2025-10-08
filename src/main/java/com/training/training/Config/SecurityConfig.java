@@ -36,7 +36,8 @@ public class SecurityConfig{
         http.csrf(csrf->csrf.disable())
         .authorizeHttpRequests(auth-> auth.requestMatchers("/api/authenticate/**").permitAll()
         .requestMatchers(HttpMethod.GET,"/api/courses/**","/h2-console/**").permitAll()
-        .anyRequest().authenticated());
+        .anyRequest().authenticated())
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

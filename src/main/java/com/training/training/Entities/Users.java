@@ -23,7 +23,7 @@ public class Users implements UserDetails{
     String role;
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role));
+        return List.of(new SimpleGrantedAuthority("ROLE_"+this.role.toUpperCase()));
     }
     public Long getId() {
         return id;

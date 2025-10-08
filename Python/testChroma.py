@@ -1,6 +1,17 @@
 import chromadb
+from sentence_transformers import SentenceTransformer
+from chromadb.utils import embedding_functions
+
+model = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+
+
+
 chromaClient = chromadb.HttpClient("localhost",8000)
-# collection = chromaClient.create_collection(name="my_collection")
+chromaClient.delete_collection("my_collection")
+
+# collection = chromaClient.get_or_create_collection(name="my_collection", embedding_function=model)
+collection = chromaClient.get_or_create_collection(name="my_collection")
+
 collection = chromaClient.get_collection("my_collection")
 collection.add(
     ids=["doc1","doc2","doc3"],
@@ -10,6 +21,7 @@ collection.add(
         "The library is open from 9 AM to 5 PM."
     ]
 )
+
 
 result = collection.query(
     query_texts=["What are the library hours?"],
