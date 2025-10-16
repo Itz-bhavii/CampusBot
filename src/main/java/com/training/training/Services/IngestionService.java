@@ -1,6 +1,9 @@
 package com.training.training.Services;
 
 
+import java.util.UUID;
+
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -17,14 +20,19 @@ public class IngestionService {
     @Autowired
     private FileStorageService fileStorageService;
 
-    public ContentDTO getFile(MultipartFile receivedFile){
-        String storedFilePath = fileStorageService.storeFileAndReturnPath(receivedFile);
+    @Autowired
+    private SenderMessageMQService senderMessageMQService;
 
-        PathDTO pathDTO = new PathDTO(storedFilePath);
+    public boolean getFile(MultipartFile receivedFile){
+        String uuid = UUID.randomUUID().toString();
+        String storedFilePath = fileStorageService.storeFileAndReturnPath(receivedFile);
+        senderMessageMQService.sendMessage(new CustomMessage(uuid,storedFilePath));
         
-        String url = "http://127.0.0.1:5000/ingest";
-        ContentDTO content = restTemplate.postForObject(url,pathDTO,ContentDTO.class);
-        return content;
+        // PathDTO pathDTO = new PathDTO(storedFilePath);
+        
+        // String url = "http://127.0.0.1:5000/ingest";
+        // ContentDTO content = restTemplate.postForObject(url,pathDTO,ContentDTO.class);
+        return true;
     }
 
 

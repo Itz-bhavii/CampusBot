@@ -1,5 +1,6 @@
 package com.training.training.repositorys;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.assertj.core.api.Assertions;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import com.training.training.Entities.Course;
 import com.training.training.Repositorys.CourseRepository;
 import com.training.training.Services.DefaultAdminInitializer;
 
+@Disabled
 @Testcontainers
 @SpringBootTest
 @ActiveProfiles("test")

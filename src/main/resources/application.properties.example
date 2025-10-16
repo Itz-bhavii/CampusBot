@@ -1,0 +1,7 @@
+spring.application.name=training
+spring.h2.console.enabled=true
+spring.datasource.username=root
+spring.datasource.password=password
+spring.sql.init.mode=always
+logging.level.org.springframework.security=DEBUG
+AMQP_URL = your-url

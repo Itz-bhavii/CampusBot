@@ -17,6 +17,7 @@ import com.training.training.DTO.ContentDTO;
 import com.training.training.DTO.PathDTO;
 import com.training.training.Services.FileStorageService;
 import com.training.training.Services.IngestionService;
+import com.training.training.Services.SenderMessageMQService;
 
 @ExtendWith(MockitoExtension.class)
 public class IngestionServiceTest {
@@ -25,6 +26,9 @@ public class IngestionServiceTest {
 
     @Mock
     FileStorageService fileStorageService;
+
+    @Mock // Add this
+    SenderMessageMQService senderMessageMQService;
 
     @InjectMocks
     IngestionService ingestionService;
@@ -41,10 +45,13 @@ public class IngestionServiceTest {
         String expectedPath = "D:/Temp/uploads/test.txt";
         when(fileStorageService.storeFileAndReturnPath(mockFile)).thenReturn(expectedPath);
 
-        when(restTemplate.postForObject(eq("http://127.0.0.1:5000/ingest"),any(PathDTO.class), eq(ContentDTO.class))).thenReturn(expectedContent);
+        // when(restTemplate.postForObject(eq("http://127.0.0.1:5000/ingest"),any(PathDTO.class), eq(ContentDTO.class))).thenReturn(expectedContent);
 
-        ContentDTO ans = ingestionService.getFile(mockFile);
-        assertThat(ans.getcontent()).isEqualTo(expectedContent.getcontent());
+        // ContentDTO ans = ingestionService.getFile(mockFile);
+        // assertThat(ans.getcontent()).isEqualTo(expectedContent.getcontent());
+        boolean ans = ingestionService.getFile(mockFile);
+        assertThat(ans).isEqualTo(true);
+
     }
 
     @Test
