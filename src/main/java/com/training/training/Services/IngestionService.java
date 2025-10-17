@@ -3,7 +3,6 @@ package com.training.training.Services;
 
 import java.util.UUID;
 
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -25,9 +24,11 @@ public class IngestionService {
 
     public boolean getFile(MultipartFile receivedFile){
         String uuid = UUID.randomUUID().toString();
-        String storedFilePath = fileStorageService.storeFileAndReturnPath(receivedFile);
-        senderMessageMQService.sendMessage(new CustomMessage(uuid,storedFilePath));
+        String storedFileName = fileStorageService.storeFileAndReturnPath(receivedFile);
+        senderMessageMQService.sendMessage(new CustomMessage(uuid,storedFileName));
         
+
+
         // PathDTO pathDTO = new PathDTO(storedFilePath);
         
         // String url = "http://127.0.0.1:5000/ingest";

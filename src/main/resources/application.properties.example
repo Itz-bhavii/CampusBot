@@ -5,3 +5,6 @@ spring.datasource.password=password
 spring.sql.init.mode=always
 logging.level.org.springframework.security=DEBUG
 AMQP_URL = your-url
+minio.endpoint=http://127.0.0.1:9000
+minio.access.key=your-key
+minio.secret.key=your-key
