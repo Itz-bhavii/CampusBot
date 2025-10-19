@@ -21,7 +21,7 @@ public class DefaultAdminInitializer {
                 admin.setPassword(passwordEncoder.encode("admin1234"));
                 admin.setRole("ADMIN");
                 userDetailsRepository.save(admin);
-                System.out.println("Default Admin Created With admin password");
+                System.out.println("Default Admin Created With admin admin1234");
             }
         };
     }

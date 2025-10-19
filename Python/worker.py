@@ -10,7 +10,7 @@ from common import clients
 from logging_config import LOGGING_CONFIG
 from unstructured.partition.pdf import partition_pdf
 from unstructured.partition.text import partition_text
-
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
@@ -106,29 +106,53 @@ def cleanText(text):
     cleanedText = ' '.join(str(text).split())
     return cleanedText
 
+
 def extractAndStoreText(fullText):
-    primaryChunks = fullText.split("\n\n")
-    finalText = []
-    logger.info("Chunking The Received Text")
-    for chunk in primaryChunks:
-        if(len(chunk) > 1000):
-            smallChunk = chunk.split("\n")
-            for small in smallChunk:
-                finalText.append(cleanText(small))
-        else:
-            finalText.append(cleanText(chunk))
-        
-    if finalText:
+    textSplitter = RecursiveCharacterTextSplitter(
+        chunk_size = 1000,
+        chunk_overlap = 200,
+        separators=["\n\n","\n"," ",""]
+    )
+
+    chunks = textSplitter.split_text(fullText)
+    finalCleanText = [cleanText(chunk) for chunk in chunks]
+    if finalCleanText:
         logger.info("Assigning Uids")
-        uuids = [str(uuid.uuid4()) for _ in finalText]
+        uuids = [str(uuid.uuid4()) for _ in finalCleanText]
         collection.add(
             ids= uuids,
-            documents= finalText
+            documents= finalCleanText
         )
         logger.info("Text Added To The Database Successfully")
 
     # print(finalText)
-    return finalText
+    return finalCleanText
+
+
+
+# def extractAndStoreText(fullText):
+#     primaryChunks = fullText.split("\n\n")
+#     finalText = []
+#     logger.info("Chunking The Received Text")
+#     for chunk in primaryChunks:
+#         if(len(chunk) > 1000):
+#             smallChunk = chunk.split("\n")
+#             for small in smallChunk:
+#                 finalText.append(cleanText(small))
+#         else:
+#             finalText.append(cleanText(chunk))
+        
+#     if finalText:
+#         logger.info("Assigning Uids")
+#         uuids = [str(uuid.uuid4()) for _ in finalText]
+#         collection.add(
+#             ids= uuids,
+#             documents= finalText
+#         )
+#         logger.info("Text Added To The Database Successfully")
+
+#     # print(finalText)
+#     return finalText
 
 
 def getFileDataAndExtract(fileNameWithPath:str):

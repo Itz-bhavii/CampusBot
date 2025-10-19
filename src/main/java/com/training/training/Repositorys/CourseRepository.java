@@ -7,4 +7,5 @@ import com.training.training.Entities.Course;
 
 @Repository
 public interface CourseRepository extends JpaRepository<Course,Integer>{
+    
 }

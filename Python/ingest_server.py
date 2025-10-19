@@ -35,32 +35,109 @@ except Exception as e:
     logger.critical("Failed during application initialization.", exc_info=True)
     exit(1)
 
-@app.route("/querry",methods=['POST'])
+
+@app.route("/querry", methods=['POST'])
 def getQuerry():
     content = request.get_json()
-    question = content["question"]
+    question = content.get("question")
+    chat_history = content.get("chatHistory", []) 
+
     if not question:
         return jsonify({"error": "Missing 'question' in request body"}), 400
-    logger.info("Received /querry request.", extra={'question': question})
-    result = collection.query(
-        query_texts=[question],
-        n_results= 3
+
+    logger.info("Received /querry request.", extra={'question': question, 'history_length': len(chat_history)})
+
+    standalone_question = question
+    if chat_history:
+        formatted_history = "\n".join([f"{msg}" for msg in chat_history])
+
+        condense_prompt = f"""Given the following conversation history and a follow-up question, rephrase the follow-up question to be a standalone question that can be understood without the chat history.
+
+Chat History:
+{formatted_history}
+
+Follow-up Question: {question}
+
+Standalone Question:"""
+        print(condense_prompt)
+        response = googleClient.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[condense_prompt]
+        )
+        standalone_question = response.text.strip()
+        logger.info(f"Generated standalone question: {standalone_question}")
+
+    results = collection.query(
+        query_texts=[standalone_question],
+        n_results=3
     )
-    logger.info("Extracted The Matching Results")
+    retrieved_context = "\n\n".join(results['documents'][0])
+    logger.info("Extracted matching results from ChromaDB.")
 
-    prompt = f"Using only the provided context, answer the question. Context: [{result["documents"]}]. Question: [{question}]"
+    final_prompt = f"""You are a helpful college assistant. Answer the following question based ONLY on the provided context. If the context does not contain the answer, say "I do not have enough information to answer that question."
 
-    logger.info("Calling Model")
-    response = googleClient.models.generate_content(
+Context:
+{retrieved_context}
+
+Question: {standalone_question}
+
+Answer:"""
+
+    print(final_prompt)
+    logger.info("Calling final generation model.")
+    final_response = googleClient.models.generate_content(
         model="gemini-2.0-flash",
-        contents=[prompt]
+        contents=[final_prompt]
     )
-    logger.info("Response Generated")
+    logger.info("Final response generated.")
 
+    print(final_response.text)
     ans = {
-        "answer":response.text
+        "message": final_response.text.strip()
     }
     return jsonify(ans)
+
+
+
+
+# @app.route("/querry",methods=['POST'])
+# def getQuerry():
+#     content = request.get_json()
+#     question = content["question"]
+#     chatHistory = content["chatHistory"]
+#     print(question)
+#     print(chatHistory)
+#     if not question or not chatHistory:
+#         return jsonify({"error": "Missing request body"}), 400
+#     logger.info("Received /querry request.", extra={'question': question})
+    
+#     prompt = f"generate an single standalone question with the context provided. Context: [{chatHistory},{question}]"
+
+#     modifiedQuestion = googleClient.models.generate_content(
+#         model = "gemini-2.0-flash",
+#         contents= prompt
+#     )
+
+#     print(modifiedQuestion.text)
+#     result = collection.query(
+#         query_texts=[modifiedQuestion.text],
+#         n_results= 3
+#     )
+#     logger.info("Extracted The Matching Results")
+
+#     prompt = f"Using only the provided context, answer the question. Context: [{result['documents']}]. Question: [{modifiedQuestion.text}]"
+
+#     logger.info("Calling Model")
+#     response = googleClient.models.generate_content(
+#         model="gemini-2.0-flash",
+#         contents=[prompt]
+#     )
+#     logger.info("Response Generated")
+
+#     ans = {
+#         "message":response.text
+#     }
+#     return jsonify(ans)
 
 
 @app.route("/health")

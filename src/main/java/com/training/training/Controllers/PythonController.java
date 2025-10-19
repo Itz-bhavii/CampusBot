@@ -1,5 +1,7 @@
 package com.training.training.Controllers;
 
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -13,20 +15,28 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.training.training.Entities.Querry;
+import com.training.training.DTO.MessageDTO;
+import com.training.training.Entities.ChatMessage;
+import com.training.training.Services.ChatMessageService;
 import com.training.training.Services.IngestionService;
 import com.training.training.Services.QuerryService;
+import com.training.training.Utils.UuidUtils;
 
 
 @RestController
 @RequestMapping("/api")
 public class PythonController {
 
+    final String SENDER = "USER";
+
     @Autowired
     private IngestionService ingestionService;
 
     @Autowired
     private QuerryService querryService;
+
+    @Autowired
+    private ChatMessageService chatMessageService;
 
 
     @PostMapping("/ingest")
@@ -45,9 +55,12 @@ public class PythonController {
     }
 
     @PostMapping("/chat")
-    public String sendQuestion(@RequestBody Querry querry){
-        return querryService.sendQuerryToFlask(querry);
+    public MessageDTO sendQuestion(@RequestBody MessageDTO querry){
+        return chatMessageService.processAndSendData(querry,SENDER);
+        // return querryService.sendQuerryToFlask(querry);
 
     }
+
+    
 
 }

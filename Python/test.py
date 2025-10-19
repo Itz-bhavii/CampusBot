@@ -1,31 +1,19 @@
-import tempfile
+import chromadb
 
-# with tempfile.TemporaryDirectory() as temp:
+from sentence_transformers import SentenceTransformer
+from chromadb.utils import embedding_functions
 
-
-
-
-
+model = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
 
 
 
-
-
-# import chromadb
-# from sentence_transformers import SentenceTransformer
-# from chromadb.utils import embedding_functions
-
-# model = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
-
-
-
-# chromaClient = chromadb.HttpClient("localhost",8000)
+chromaClient = chromadb.HttpClient("localhost",8000)
 # chromaClient.delete_collection("my_collection")
 
-# # collection = chromaClient.get_or_create_collection(name="my_collection", embedding_function=model)
+# collection = chromaClient.get_or_create_collection(name="my_collection", embedding_function=model)
 # collection = chromaClient.get_or_create_collection(name="my_collection")
 
-# collection = chromaClient.get_collection("my_collection")
+collection = chromaClient.get_collection("practice_collection")
 # collection.add(
 #     ids=["doc1","doc2","doc3"],
 #     documents=[
@@ -37,7 +25,7 @@ import tempfile
 
 
 # result = collection.query(
-#     query_texts=["What are the library hours?"],
+#     query_texts=[""],
 #     n_results=1
 # )
-# print(result["documents"])
+print(collection.get())
