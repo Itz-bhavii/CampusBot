@@ -1,16 +1,21 @@
 import os
+import re
 import uuid
 import boto3
+import tabula
 import logging
 import tempfile
 import chromadb
-import pika,os,json
+import pika,json
+import pandas as pd
 import logging.config
 from common import clients
+from collections import defaultdict
 from logging_config import LOGGING_CONFIG
 from unstructured.partition.pdf import partition_pdf
 from unstructured.partition.text import partition_text
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from unstructured.documents.elements import Title,NarrativeText,ListItem,Table
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
@@ -102,62 +107,57 @@ def callback(ch,method,properties,body):
         logger.error("unhandled exception occurred during message processing ",e,extra=log_context)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
-def cleanText(text):
-    cleanedText = ' '.join(str(text).split())
-    return cleanedText
+def sanitizeText(text: str) -> str:
+    # 1. Fix words broken across lines
+    text = re.sub(r'-\n', '', text)
+    # 2. Remove page numbers, headers, footers (customize this regex)
+    text = re.sub(r'\d+ of \d+', '', text)
+    # 3. Collapse all whitespace into single spaces
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 
-def extractAndStoreText(fullText):
-    textSplitter = RecursiveCharacterTextSplitter(
-        chunk_size = 1000,
-        chunk_overlap = 200,
-        separators=["\n\n","\n"," ",""]
-    )
+def storeText(documents,metadatas):
+    grouped_chunks = defaultdict(list)
 
-    chunks = textSplitter.split_text(fullText)
-    finalCleanText = [cleanText(chunk) for chunk in chunks]
-    if finalCleanText:
+    for i in range(len(documents)):
+        heading = metadatas[i]["source_heading"]
+        chunk = documents[i]
+        grouped_chunks[heading].append(chunk)
+
+    # 2. COMBINE the chunks for each heading into a single paragraph.
+    # This is the critical step your original code failed at.
+    final_data = {
+        heading: " ".join(chunks)
+        for heading, chunks in grouped_chunks.items()
+    }
+
+    # 3. UNPACK the final, aggregated data into lists for the database.
+    final_documents = list(final_data.values())
+    final_metadatas = [{"source_heading": heading} for heading in final_data.keys()]
+
+    if documents:
+        print(final_documents)
+        print(final_metadatas)
         logger.info("Assigning Uids")
-        uuids = [str(uuid.uuid4()) for _ in finalCleanText]
+        uuids = [str(uuid.uuid4()) for _ in final_documents]
         collection.add(
             ids= uuids,
-            documents= finalCleanText
+            documents= final_documents,
+            metadatas=final_metadatas
         )
         logger.info("Text Added To The Database Successfully")
 
     # print(finalText)
-    return finalCleanText
 
 
 
-# def extractAndStoreText(fullText):
-#     primaryChunks = fullText.split("\n\n")
-#     finalText = []
-#     logger.info("Chunking The Received Text")
-#     for chunk in primaryChunks:
-#         if(len(chunk) > 1000):
-#             smallChunk = chunk.split("\n")
-#             for small in smallChunk:
-#                 finalText.append(cleanText(small))
-#         else:
-#             finalText.append(cleanText(chunk))
-        
-#     if finalText:
-#         logger.info("Assigning Uids")
-#         uuids = [str(uuid.uuid4()) for _ in finalText]
-#         collection.add(
-#             ids= uuids,
-#             documents= finalText
-#         )
-#         logger.info("Text Added To The Database Successfully")
-
-#     # print(finalText)
-#     return finalText
 
 
 def getFileDataAndExtract(fileNameWithPath:str):
+    print("get file data and extract")
     if(".pdf" in fileNameWithPath):
-        doc = partition_pdf(fileNameWithPath,strategy="hi_res")
+        doc = partition_pdf(fileNameWithPath,strategy="hi_res",infer_table_structure=True)
         logger.info("Opened The Pdf File")
     elif(".txt" in fileNameWithPath):
         doc = partition_text(fileNameWithPath)
@@ -165,13 +165,43 @@ def getFileDataAndExtract(fileNameWithPath:str):
     else:
         logger.error("Invalid File Format")
         raise Exception("Invalid File Format")
-    fullText = ""
+    
+    textSplitter = RecursiveCharacterTextSplitter(
+        chunk_size = 1000,
+        chunk_overlap = 200,
+        separators=["\n\n","\n"," ",""]
+    )
+
+    documentsToAdd = []
+    metadataToAdd = []
+    currentHeading = "General"
     for page in doc:
-        fullText += page.text + "\n"
 
-    # print(fullText)
+        if isinstance(page,Title):
+            currentHeading = page.text.strip()
 
-    extractAndStoreText(fullText)
+        elif isinstance(page,NarrativeText) or isinstance(page,ListItem):
+            if len(page.text) < 1000 :
+                documentsToAdd.append(sanitizeText(page.text.strip()))
+                metadataToAdd.append({"source_heading" : currentHeading})
+            else :
+                subChunks = textSplitter.split_text(page.text)
+                for chunk in subChunks:
+                    documentsToAdd.append(sanitizeText(chunk))
+                    metadataToAdd.append({"source_heading" : currentHeading})
+        elif isinstance(page,Table):
+            pgNum = page.metadata.page_number
+            dfs = tabula.read_pdf(fileNameWithPath,pages=pgNum)
+            for df in dfs:
+                documentsToAdd.append(df.to_markdown(index=False))
+                metadataToAdd.append({"source_heading": f"Table under {currentHeading}"})
+            # tableText = sanitizeText(page.text)
+            # tableHtml = getattr(page.metadata,"text_as_html","")
+            # fullTableContnet = f"Table Content:\n{tableText}\nHTML Structure:\n{tableHtml}"
+            # documentsToAdd.append(fullTableContnet)
+            # metadataToAdd.append({"source_heading": f"Table under {currentHeading}"})
+            
+    storeText(documentsToAdd,metadataToAdd)
 
     textToReturn = {
         "content" : "Text Extracted Successfully"
@@ -187,6 +217,7 @@ def downloadAndStoreFileLocallyUsingMinio(objectName : str):
                 raise Exception("file name not provided")
             botoClient.download_file(BUCKET_NAME,objectName,fileNameWithPath)
             logger.info("file downloaded successfully at",fileNameWithPath)
+            print("downloaded")
             getFileDataAndExtract(fileNameWithPath)
             logger.info("data extraction successfull")
 
@@ -205,3 +236,30 @@ except Exception as e:
     logger.critical("Consumer crashed.", exc_info=True)
     if 'connection' in locals() and connection.is_open:
         connection.close()
+
+
+
+
+# def extractAndStoreText(fullText):
+#     primaryChunks = fullText.split("\n\n")
+#     finalText = []
+#     logger.info("Chunking The Received Text")
+#     for chunk in primaryChunks:
+#         if(len(chunk) > 1000):
+#             smallChunk = chunk.split("\n")
+#             for small in smallChunk:
+#                 finalText.append(sanitizeText(small))
+#         else:
+#             finalText.append(sanitizeText(chunk))
+        
+#     if finalText:
+#         logger.info("Assigning Uids")
+#         uuids = [str(uuid.uuid4()) for _ in finalText]
+#         collection.add(
+#             ids= uuids,
+#             documents= finalText
+#         )
+#         logger.info("Text Added To The Database Successfully")
+
+#     # print(finalText)
+#     return finalText

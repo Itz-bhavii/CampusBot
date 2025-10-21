@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 
@@ -15,6 +16,7 @@ public class ChatMessage {
     private UUID uuid;
     private UUID conversationId;
     private String sender;
+    @Column(columnDefinition = "TEXT")
     private String message;
     @CreationTimestamp
     private LocalDateTime timestamp;
