@@ -15,7 +15,6 @@ public class MessageDTO {
         this.conversationId = conversationId;
     }
 
-    
     public String getMessage() {
         return message;
     }

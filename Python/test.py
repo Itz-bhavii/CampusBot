@@ -12,57 +12,57 @@ chromaClient = chromadb.HttpClient("localhost",8000)
 
 collection = chromaClient.get_or_create_collection(name="practice_collection", embedding_function=model)
 
-API_KEY = os.getenv("API_KEY")
-googleClient = genai.Client(api_key=API_KEY)
+# API_KEY = os.getenv("API_KEY")
+# googleClient = genai.Client(api_key=API_KEY)
 
 
-standalone_question = "What is the projected highest placement package in lakhs for the year 2026-27?"
+# standalone_question = "What is the projected highest placement package in lakhs for the year 2026-27?"
 
-querryExpansionPrompt = f"""
-Given the following user question, generate 4 alternative ways of asking the same thing.
-The queries should be diverse and cover different phrasings. Include the original question in the list and dont add any hint that it is the original question and give the string such as 2 questions can be splitted by two new lines
+# querryExpansionPrompt = f"""
+# Given the following user question, generate 4 alternative ways of asking the same thing.
+# The queries should be diverse and cover different phrasings. Include the original question in the list and dont add any hint that it is the original question and give the string such as 2 questions can be splitted by two new lines
 
-Original Question: "{standalone_question}"
+# Original Question: "{standalone_question}"
 
-Alternative Queries:
-1. {standalone_question}
-2. ...
-3. ...
-4. ...
-5. ...
-"""
+# Alternative Queries:
+# 1. {standalone_question}
+# 2. ...
+# 3. ...
+# 4. ...
+# 5. ...
+# """
 
-expandedQuerryRaw = googleClient.models.generate_content(
-    model="gemini-2.0-flash",
-    contents=querryExpansionPrompt
-)
+# expandedQuerryRaw = googleClient.models.generate_content(
+#     model="gemini-2.0-flash",
+#     contents=querryExpansionPrompt
+# )
 
-questions = list(expandedQuerryRaw.text.strip().split("\n\n"))
+# questions = list(expandedQuerryRaw.text.strip().split("\n\n"))
 
-print(questions)
-print(len(questions))
-results = collection.query(
-    query_texts= questions,
-    n_results= 5
-)
+# print(questions)
+# print(len(questions))
+# results = collection.query(
+#     query_texts= questions,
+#     n_results= 5
+# )
 
-distinct = set({})
+# distinct = set({})
 
-count = 0
-for wholeList in results["documents"]:
-    for doc in wholeList:
-        distinct.add(doc)
-        # print("******************************************************************************************")
-        count = count + 1
+# count = 0
+# for wholeList in results["documents"]:
+#     for doc in wholeList:
+#         distinct.add(doc)
+#         # print("******************************************************************************************")
+#         count = count + 1
 
-print(count)
-count = 0
-distinct = list(distinct)
-for doc in distinct:
-    print(doc)
-    print("******************************************************************************************")
-    count = count + 1
-print(count)
+# print(count)
+# count = 0
+# distinct = list(distinct)
+# for doc in distinct:
+#     print(doc)
+#     print("******************************************************************************************")
+#     count = count + 1
+# print(count)
 # for que in questions:
 #     print(que)
 
@@ -93,7 +93,7 @@ print(count)
 #     query_texts=[""],
 #     n_results=1
 # )
-# print(collection.get())
+print(collection.get())
 
 
 

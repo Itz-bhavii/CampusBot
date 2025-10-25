@@ -27,13 +27,12 @@ import com.training.training.Utils.UuidUtils;
 @RequestMapping("/api")
 public class PythonController {
 
+    
     final String SENDER = "USER";
 
     @Autowired
     private IngestionService ingestionService;
 
-    @Autowired
-    private QuerryService querryService;
 
     @Autowired
     private ChatMessageService chatMessageService;

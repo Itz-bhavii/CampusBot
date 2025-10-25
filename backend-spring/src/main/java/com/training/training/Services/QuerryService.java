@@ -21,8 +21,8 @@ public class QuerryService {
     private RestTemplate restTemplate;
 
     
-    public MessageDTO sendQuerryToFlask(QuerryDTO querry){
-        String url = "http://127.0.0.1:5000/querry";
+    public MessageDTO sendQuerryToPython(QuerryDTO querry){
+        String url = "http://127.0.0.1:8000/querry";
         return restTemplate.postForObject(url, querry, MessageDTO.class);
     }   
 }

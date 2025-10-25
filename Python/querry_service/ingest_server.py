@@ -3,14 +3,25 @@ import logging
 import chromadb
 import pytesseract
 import logging.config
-from PIL import Image
+from typing import List
 from google import genai
 from common import clients
+from fastapi import FastAPI
 from dotenv import load_dotenv
-from flask import Flask,request,jsonify;
+from pydantic import BaseModel,Field
 from logging_config import LOGGING_CONFIG
 from sentence_transformers.cross_encoder import CrossEncoder
 
+
+class QuerryResponse(BaseModel):
+    message : str
+
+class QuerryRequest(BaseModel):
+    question : str
+    chatHistory : List[str] = Field(default_factory=list)
+
+class HealthyResponse(BaseModel):
+    status : str
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
@@ -25,7 +36,10 @@ try:
         logger.critical("API_KEY value not set")
         raise ValueError("API_KEY not set")
     #flask
-    app = Flask(__name__)
+    # app = Flask(__name__)
+
+    #fastapi
+    app = FastAPI()
     #loadingModels
     model = clients.getModel()
     modelCrossEncoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
@@ -40,20 +54,19 @@ except Exception as e:
     exit(1)
 
 
-@app.route("/querry", methods=['POST'])
-def getQuerry():
-    content = request.get_json()
-    question = content.get("question")
-    chat_history = content.get("chatHistory", []) 
+@app.post("/querry")
+def getQuerry(requestBody : QuerryRequest):
+    question = requestBody.question
+    chatHistory = requestBody.chatHistory
 
     if not question:
-        return jsonify({"error": "Missing 'question' in request body"}), 400
+        return {"error ":"question not received"}
 
-    logger.info("Received /querry request.", extra={'question': question, 'history_length': len(chat_history)})
+    logger.info("Received /querry request.", extra={'question': question, 'history_length': len(chatHistory)})
 
     standalone_question = question
-    if chat_history:
-        formatted_history = "\n".join([f"{msg}" for msg in chat_history])
+    if chatHistory:
+        formatted_history = "\n".join([f"{msg}" for msg in chatHistory])
 
         condense_prompt = f"""Given the following conversation history and a follow-up question, rephrase the follow-up question to be a standalone question that can be understood without the chat history.
 
@@ -66,7 +79,7 @@ def getQuerry():
         
         # print(condense_prompt)
         response = googleClient.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=[condense_prompt]
         )
         standalone_question = response.text.strip()
@@ -108,24 +121,20 @@ def getQuerry():
     # print(final_prompt)
     logger.info("Calling final generation model.")
     final_response = googleClient.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         contents=[final_prompt]
     )
     logger.info("Final response generated.")
     print(question)
     print(final_response.text)
-    ans = {
-        "message": final_response.text.strip()
-    }
-    return jsonify(ans)
+
+    return QuerryResponse(message=final_response.text.strip()) 
 
 
-@app.route("/health")
+@app.get("/health")
 def healthChecker():
-    textToReturn = {
-        "status":"healthy"
-    }
-    return textToReturn
+    healthyResponse = HealthyResponse(status="Healthy")
+    return healthyResponse
 
 
 
@@ -145,15 +154,15 @@ def getAlternateQuestions(standalone_question : str) -> list:
     """
 
     expandedQuerryRaw = googleClient.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         contents=querryExpansionPrompt
     )
 
     questions = list(expandedQuerryRaw.text.strip().split("\n\n"))
     return questions
 
-if(__name__== "__main__"):
-    app.run(debug=True)
+# if(__name__== "__main__"):
+#     app.run(debug=True)
 # @app.route("/querry",methods=['POST'])
 # def getQuerry():
 #     content = request.get_json()

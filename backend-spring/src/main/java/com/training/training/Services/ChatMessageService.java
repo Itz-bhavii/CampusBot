@@ -43,10 +43,12 @@ public class ChatMessageService {
         querryDTO.setQuestion(querry.getMessage());
         querryDTO.setChatHistory(recentMessages);
 
-        MessageDTO ans =  querryService.sendQuerryToFlask(querryDTO);
+        MessageDTO ans =  querryService.sendQuerryToPython(querryDTO);
         ans.setConversationId(message.getConversationId());
         ChatMessage chatMessage = createChatMessageFromQuerry(ans, SENDER);
         saveChat(chatMessage);
+        System.out.println(ans.getMessage());
+        System.out.println(ans.getConversationId());
         return ans;
 
     }

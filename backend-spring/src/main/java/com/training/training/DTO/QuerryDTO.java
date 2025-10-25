@@ -4,7 +4,7 @@ import java.util.List;
 
 public class QuerryDTO {
     String question;
-    List<String> chatHistory;
+    List<String> chatHistory;   
 
     
     public String getQuestion() {
