@@ -1,44 +1,129 @@
 version: "3.8"
 
 services:
-  # 1. The PostgreSQL Database
+  # --- 1. The PostgreSQL Database ---
   postgres:
     image: postgres:15-alpine
     container_name: campusbot_postgres
     environment:
-      POSTGRES_DB: campusbot
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "5433:5432" # Host:Container
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
 
-  # 2. The ChromaDB Vector Store
+  # --- 2. The ChromaDB Vector Store ---
   chromadb:
     image: chromadb/chroma
     container_name: campusbot_chroma
     ports:
-      - "8000:8000"
+      - "8000:8000" # Host:Container
     volumes:
       - chroma-data:/chroma/.chroma/index
+    restart: unless-stopped
 
-  # 3. The MinIO S3-Compatible Object Storage
+  # --- 3. The MinIO S3-Compatible Object Storage ---
   minio:
     image: minio/minio
     container_name: campusbot_minio
     environment:
-      MINIO_ROOT_USER: minioadmin # This is your Access Key ID
-      MINIO_ROOT_PASSWORD: minioadmin # This is your Secret Access Key
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
       - "9000:9000" # API Port
       - "9001:9001" # Console Port
     volumes:
       - minio-data:/data
     command: server /data --console-address ":9001"
+    restart: unless-stopped
 
-# Define the persistent volumes
+  # --- 4. The RabbitMQ Message Broker ---
+  # We'll use a local image for dev. You can swap this for CloudAMQP in prod.
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: campusbot_rabbitmq
+    ports:
+      - "5672:5672" # AMQP port
+      - "15672:15672" # Management UI
+    environment:
+      # These are the credentials Spring/Python will use
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
+    restart: unless-stopped
+
+  # --- 5. The Spring Boot Backend API ---
+  spring-boot-app:
+    build:
+      context: ./backend-spring # Path to Spring Boot project
+      dockerfile: Dockerfile
+    container_name: campusbot_spring_app
+    ports:
+      - "8080:8080"
+    env_file: .env # Load all secrets from the root .env file
+    environment:
+      # Override environment variables to use Docker DNS names
+      - SPRING_DATASOURCE_URL=${DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - MINIO_URL=${MINIO_URL}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - AI_QUERY_SERVICE_URL=${AI_QUERY_SERVICE_URL}
+      # Make sure Spring waits for the DB
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    depends_on:
+      - postgres
+      - minio
+      - rabbitmq
+    restart: unless-stopped
+
+  # --- 6. The Python FastAPI Query Service ---
+  query-service:
+    build:
+      context: ./backend-python
+      dockerfile: ./query_service/Dockerfile
+    container_name: campusbot_query_service
+    ports:
+      - "8001:8000" # Host: 8001, Container: 8000
+    env_file: .env
+    environment:
+      - CHROMA_HOST=${CHROMA_HOST}
+      - CHROMA_PORT=${CHROMA_PORT}
+    depends_on:
+      - chromadb
+    restart: unless-stopped
+    volumes:
+      # This line is the entire fix.
+      - sentence-transformers-cache:/root/.cache
+
+  # --- 7. The Python Ingestion Worker ---
+  ingestion-worker:
+    build:
+      context: ./backend-python
+      dockerfile: ./ingestion_worker/Dockerfile
+    container_name: campusbot_ingestion_worker
+    env_file: .env
+    environment:
+      - CHROMA_HOST=${CHROMA_HOST}
+      - CHROMA_PORT=${CHROMA_PORT}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - BUCKET_NAME=${BUCKET_NAME}
+      # Use the CloudAMQP URL from the .env file
+      - CLOUDAMQP_URL=${CLOUDAMQP_URL}
+    depends_on:
+      - rabbitmq
+      - minio
+      - chromadb
+    restart: unless-stopped
+
+# --- Define the persistent volumes ---
 volumes:
   postgres-data:
   chroma-data:
   minio-data:
+  sentence-transformers-cache:
