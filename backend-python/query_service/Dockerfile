@@ -31,4 +31,4 @@ COPY query_service/ /app/
 
 # Run the application
 EXPOSE 8000
-CMD ["uvicorn", "routers.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "routerss.main:app", "--host", "0.0.0.0", "--port", "800k0"]

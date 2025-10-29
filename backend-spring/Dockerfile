@@ -9,7 +9,7 @@ RUN mvn clean package -DskipTests
 FROM openjdk:17-jdk-slim
 WORKDIR /app
 # Copy the built JAR file from the 'build' stage
-COPY --from=build /app/target/training-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/campusbot-0.0.1-SNAPSHOT.jar app.jar
 # Expose the port the app runs on
 EXPOSE 8080
 # Command to run the application

@@ -20,7 +20,7 @@ public class FileStorageService {
         try{
                 ObjectWriteResponse savedObject = minioClient.putObject(
                     PutObjectArgs.builder()
-                    .bucket("campusbot-ingestion-vault")
+                    .bucket("campusbot-files")
                     .object(receivedFile.getOriginalFilename())
                     .stream(receivedFile.getInputStream(), receivedFile.getSize(),-1)
                     .contentType(receivedFile.getContentType())
