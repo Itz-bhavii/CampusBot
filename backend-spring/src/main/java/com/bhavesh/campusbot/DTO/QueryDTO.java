@@ -2,7 +2,7 @@ package com.bhavesh.campusbot.DTO;
 
 import java.util.List;
 
-public class QuerryDTO {
+public class QueryDTO {
     String question;
     List<String> chatHistory;   
 

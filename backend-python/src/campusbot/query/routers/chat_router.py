@@ -1,8 +1,8 @@
 import logging.config
 from fastapi import APIRouter
-from campusbot_common.campus_logger import LOGGING_CONFIG
-from models.QuerryRequest import QuerryRequest 
-from services.chat_service import getQuestionAndHistory
+from campusbot.common.campus_logger import LOGGING_CONFIG
+from ..models.QueryRequest import QueryRequest 
+from ..services.chat_service import getQuestionAndHistory
 
 router = APIRouter()
 
@@ -10,7 +10,7 @@ logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
 
 @router.post("/query")
-def getQuerry(requestBody : QuerryRequest):
+def getQuery(requestBody : QueryRequest):
     question = requestBody.question
     chatHistory = requestBody.chatHistory
 

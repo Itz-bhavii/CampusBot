@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from routers.chat_router import router
-from models.HealthyResponse import HealthyResponse
+from .chat_router import router
+from ..models.HealthyResponse import HealthyResponse
 
 try:
     app = FastAPI()

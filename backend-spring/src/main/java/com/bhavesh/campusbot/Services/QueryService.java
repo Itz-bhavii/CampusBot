@@ -5,19 +5,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.bhavesh.campusbot.DTO.MessageDTO;
-import com.bhavesh.campusbot.DTO.QuerryDTO;
+import com.bhavesh.campusbot.DTO.QueryDTO;
 
 
 @Service
-public class QuerryService {
+public class QueryService {
 
 
     @Autowired
     private RestTemplate restTemplate;
 
     
-    public MessageDTO sendQuerryToPython(QuerryDTO querry){
+    public MessageDTO sendQueryToPython(QueryDTO query){
         String url = "http://query-service:8000/query";
-        return restTemplate.postForObject(url, querry, MessageDTO.class);
+        return restTemplate.postForObject(url, query, MessageDTO.class);
     }   
 }

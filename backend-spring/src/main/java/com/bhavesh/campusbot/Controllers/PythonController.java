@@ -46,9 +46,9 @@ public class PythonController {
     }
 
     @PostMapping("/chat")
-    public MessageDTO sendQuestion(@RequestBody MessageDTO querry){
-        return chatMessageService.processAndSendData(querry,SENDER);
-        // return querryService.sendQuerryToFlask(querry);
+    public MessageDTO sendQuestion(@RequestBody MessageDTO query){
+        return chatMessageService.processAndSendData(query,SENDER);
+        // return queryService.sendQueryToFlask(query);
 
     }
 

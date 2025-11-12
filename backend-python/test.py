@@ -18,7 +18,7 @@ collection = chromaClient.get_or_create_collection(name="practice_collection", e
 
 # standalone_question = "What is the projected highest placement package in lakhs for the year 2026-27?"
 
-# querryExpansionPrompt = f"""
+# queryExpansionPrompt = f"""
 # Given the following user question, generate 4 alternative ways of asking the same thing.
 # The queries should be diverse and cover different phrasings. Include the original question in the list and dont add any hint that it is the original question and give the string such as 2 questions can be splitted by two new lines
 
@@ -32,12 +32,12 @@ collection = chromaClient.get_or_create_collection(name="practice_collection", e
 # 5. ...
 # """
 
-# expandedQuerryRaw = googleClient.models.generate_content(
+# expandedQueryRaw = googleClient.models.generate_content(
 #     model="gemini-2.0-flash",
-#     contents=querryExpansionPrompt
+#     contents=queryExpansionPrompt
 # )
 
-# questions = list(expandedQuerryRaw.text.strip().split("\n\n"))
+# questions = list(expandedQueryRaw.text.strip().split("\n\n"))
 
 # print(questions)
 # print(len(questions))

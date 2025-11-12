@@ -11,27 +11,27 @@ import org.springframework.web.client.RestTemplate;
 
 import com.bhavesh.campusbot.DTO.AnswerDTO;
 import com.bhavesh.campusbot.DTO.MessageDTO;
-import com.bhavesh.campusbot.Services.QuerryService;
+import com.bhavesh.campusbot.Services.QueryService;
 
 @ExtendWith(MockitoExtension.class)
-public class QuerryServiceTest {
+public class QueryServiceTest {
     @Mock
     RestTemplate restTemplate;
 
     @InjectMocks
-    QuerryService querryService;
+    QueryService queryService;
 
     @Test
-    void sendQuerryToFlaskShouldPass(){
-        MessageDTO querry = new MessageDTO();
-        querry.setMessage("what is java");
+    void sendQueryToFlaskShouldPass(){
+        MessageDTO query = new MessageDTO();
+        query.setMessage("what is java");
 
         AnswerDTO expectedAns = new AnswerDTO();
         expectedAns.setAnswer("Java is a programming language");
 
-        when(restTemplate.postForObject("http://127.0.0.1:5000/querry", querry, AnswerDTO.class)).thenReturn(expectedAns);
+        when(restTemplate.postForObject("http://127.0.0.1:5000/query", query, AnswerDTO.class)).thenReturn(expectedAns);
 
-        // String ans = querryService.sendQuerryToFlask(querry);
+        // String ans = queryService.sendQueryToFlask(query);
         // Assertions.assertEquals(expectedAns.getAnswer(), ans);
 
     }

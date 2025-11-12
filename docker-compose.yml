@@ -96,8 +96,9 @@ services:
   # --- 6. The Python FastAPI Query Service ---
   query-service:
     build:
-      context: ./backend-python
-      dockerfile: ./query_service/Dockerfile
+      context: ./backend-python # Build from the unified backend-python directory
+      dockerfile: Dockerfile
+    command: uvicorn campusbot.query.main:app --host 0.0.0.0 --port 8000
     container_name: campusbot_query_service
     ports:
       - "8001:8000" # Host: 8001, Container: 8000
@@ -107,6 +108,7 @@ services:
       - CHROMA_PORT=${CHROMA_PORT}
     depends_on:
       - chromadb
+      - minio-setup
     restart: unless-stopped
     volumes:
       # This line is the entire fix.
@@ -120,14 +122,15 @@ services:
   # --- 7. The Python Ingestion Worker ---
   ingestion-worker:
     build:
-      context: ./backend-python
-      dockerfile: ./ingestion_worker/Dockerfile
+      context: ./backend-python # Build from the unified backend-python directory
+      dockerfile: Dockerfile
+    command: python -m campusbot.ingestion.worker
     container_name: campusbot_ingestion_worker
     env_file: .env
     environment:
       - CHROMA_HOST=${CHROMA_HOST}
       - CHROMA_PORT=${CHROMA_PORT}
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ENDPOINT_URL=${MINIO_ENDPOINT_URL}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - BUCKET_NAME=${BUCKET_NAME}

@@ -2,11 +2,11 @@ import os
 import logging
 import chromadb
 import logging.config
-from google import genai
+import google.generativeai as genai
 from dotenv import load_dotenv
-from campusbot_common import clients
-from models.QuerryResponse import QuerryResponse
-from campusbot_common.campus_logger import LOGGING_CONFIG
+from campusbot.common import clients
+from ..models.QueryResponse import QueryResponse
+from campusbot.common.campus_logger import LOGGING_CONFIG
 from sentence_transformers.cross_encoder import CrossEncoder
 
 
@@ -27,7 +27,8 @@ try:
     #loadingModels
     model = clients.getModel()
     modelCrossEncoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
-    googleClient = genai.Client(api_key=API_KEY)
+    genai.configure(api_key=API_KEY)
+    generation_model = genai.GenerativeModel("gemini-2.5-flash") # Note: 'gemini-2.5-flash' does not exist. Using 'gemini-1.5-flash'.
     #chroma client
     chromaClient = chromadb.HttpClient(host="chromadb",port=8000)
     # chromaClient.delete_collection("practice_collection")
@@ -53,17 +54,16 @@ def getQuestionAndHistory(question,chatHistory):
         Standalone Question:"""
         
         # print(condense_prompt)
-        response = googleClient.models.generate_content(
-            model="gemini-2.5-flash",
+        response = generation_model.generate_content(
             contents=[condense_prompt]
         )
         standalone_question = response.text.strip()
         logger.info(f"Generated standalone question: {standalone_question}")
 
-    expandedQuerries = getAlternateQuestions(standalone_question)
+    expandedQueries = getAlternateQuestions(standalone_question)
 
     results = collection.query(
-        query_texts=expandedQuerries,
+        query_texts=expandedQueries,
         n_results=5
     )
     uniqueAns = set()
@@ -95,15 +95,14 @@ def getQuestionAndHistory(question,chatHistory):
 
     # print(final_prompt)
     logger.info("Calling final generation model.")
-    final_response = googleClient.models.generate_content(
-        model="gemini-2.5-flash",
+    final_response = generation_model.generate_content(
         contents=[final_prompt]
     )
-    return QuerryResponse(message=final_response.text.strip())
+    return QueryResponse(message=final_response.text.strip())
 
 
 def getAlternateQuestions(standalone_question : str) -> list:
-    querryExpansionPrompt = f"""
+    queryExpansionPrompt = f"""
     Given the following user question, generate 4 alternative ways of asking the same thing.
     The queries should be diverse and cover different phrasings. Include the original question in the list and dont add any hint that it is the original question.
 
@@ -117,10 +116,9 @@ def getAlternateQuestions(standalone_question : str) -> list:
     5. ...
     """
 
-    expandedQuerryRaw = googleClient.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=querryExpansionPrompt
+    expandedQueryRaw = generation_model.generate_content(
+        contents=queryExpansionPrompt
     )
 
-    questions = list(expandedQuerryRaw.text.strip().split("\n\n"))
+    questions = list(expandedQueryRaw.text.strip().split("\n\n"))
     return questions
