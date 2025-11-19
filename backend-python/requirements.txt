@@ -1,11 +1,11 @@
 boto3
 chromadb
-fastapi==0.120.0
+fastapi==0.121.0
 google-generativeai
 langchain-text-splitters
 lxml
 pandas
-pdfminer.six==20250506
+pdfminer.six==20251107
 pi_heif==1.1.1
 pika
 pydantic==2.12.3
@@ -16,7 +16,6 @@ python-magic
 pytesseract==0.3.13
 sentence_transformers
 tabula-py
-tabulate
 unstructured[pdf]
 uvicorn
-google-genai==1.49.0
+urllib3==2.5.0

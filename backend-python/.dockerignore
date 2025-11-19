@@ -28,6 +28,9 @@ build/
 # Ignore other files
 a.pdf
 
+# Ignore mistakes folder
+mistakes/
+
 # Ignore git files
 .git/
 .gitignore

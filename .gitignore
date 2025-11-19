@@ -49,6 +49,11 @@ build/
 dist/
 *.egg-info/
 
+# Copilot templates and workspace files
+.copilot-templates/
+todo.md
 
-#secert keys in applicatoin properties
-application.properties
+# Logs and crash dumps
+*.log
+hs_err_pid*.log
+replay_pid*.log

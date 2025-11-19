@@ -1,10 +1,25 @@
 spring.application.name=training
-spring.h2.console.enabled=true
-spring.datasource.username=root
-spring.datasource.password=password
-spring.sql.init.mode=always
+# spring.h2.console.enabled=true
+
+#postgres
+spring.datasource.url=jdbc:postgresql://localhost:5433/YOUR_DATABASE_NAME
+spring.datasource.username=YOUR_DATABASE_USERNAME
+spring.datasource.password=YOUR_DATABASE_PASSWORD
+# spring.datasource.driver-class-name=org.postgresql.Driver
+# spring.sql.init.mode=always
+
+# hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# rabbitmq
 logging.level.org.springframework.security=DEBUG
-AMQP_URL = your-url
-minio.endpoint=http://127.0.0.1:9000
-minio.access.key=your-key
-minio.secret.key=your-key
+# ===================================================================
+# RABBITMQ CONFIGURATION
+# ===================================================================
+# Local development defaults - will be overridden by env vars in Docker
+spring.rabbitmq.host=${RABBITMQ_HOST:localhost}
+spring.rabbitmq.port=${RABBITMQ_PORT:5672}
+spring.rabbitmq.username=${RABBITMQ_USER:guest}
+spring.rabbitmq.password=${RABBITMQ_PASS:guest}
+spring.rabbitmq.virtual-host=${RABBITMQ_VHOST:/}

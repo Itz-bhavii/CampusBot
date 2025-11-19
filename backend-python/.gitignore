@@ -11,4 +11,7 @@ __pycache__/
 # Build artifacts
 build/
 dist/
-*.egg-info/
+*.egg-info
+
+# Github copilot
+.github

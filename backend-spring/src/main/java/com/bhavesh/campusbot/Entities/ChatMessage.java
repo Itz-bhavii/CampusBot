@@ -21,10 +21,10 @@ public class ChatMessage {
     @CreationTimestamp
     private LocalDateTime timestamp;
 
-    public LocalDateTime gettimestamp() {
+    public LocalDateTime getTimestamp() {
         return timestamp;
     }
-    public void settimestamp(LocalDateTime timestamp) {
+    public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
     }
     public UUID getUuid() {

@@ -31,7 +31,7 @@ public class PythonController {
 
 
     @PostMapping("/ingest")
-    public ResponseEntity addDataInFlask(@RequestParam("file") MultipartFile file){
+    public ResponseEntity<HttpStatus> addDataInPython(@RequestParam("file") MultipartFile file){
         if(ingestionService.getFile(file)){
             return new ResponseEntity<>(HttpStatus.ACCEPTED);
         }
@@ -41,7 +41,7 @@ public class PythonController {
     }
 
     @PostMapping("/ingest-image")
-    public String sendImageToFlask(@RequestParam("image") MultipartFile image){
+    public String sendImageToPython(@RequestParam("image") MultipartFile image){
         return ingestionService.getImage(image).getcontent();
     }
 

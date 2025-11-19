@@ -43,7 +43,7 @@ public class IngestionServiceTest {
         MockMultipartFile mockFile = new MockMultipartFile("file", "test.txt","text/plain","hello world".getBytes());
 
         String expectedPath = "D:/Temp/uploads/test.txt";
-        when(fileStorageService.storeFileAndReturnPath(mockFile)).thenReturn(expectedPath);
+        when(fileStorageService.storeFileInMinioAndReturnPath(mockFile)).thenReturn(expectedPath);
 
         // when(restTemplate.postForObject(eq("http://127.0.0.1:5000/ingest"),any(PathDTO.class), eq(ContentDTO.class))).thenReturn(expectedContent);
 
@@ -62,7 +62,7 @@ public class IngestionServiceTest {
         MockMultipartFile mockImage = new MockMultipartFile("img", "img.jpg","text/plain","imagedata".getBytes());
         String expectedPath = "D:/Temp/uploads/img.jpg";
 
-        when(fileStorageService.storeFileAndReturnPath(mockImage)).thenReturn(expectedPath);
+        when(fileStorageService.storeFileInMinioAndReturnPath(mockImage)).thenReturn(expectedPath);
 
         when(restTemplate.postForObject(eq("http://127.0.0.1:5000/ingest-image"),any(PathDTO.class), eq(ContentDTO.class))).thenReturn(expectedContent);
 
