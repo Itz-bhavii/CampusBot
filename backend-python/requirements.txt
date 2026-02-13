@@ -19,3 +19,4 @@ tabula-py
 unstructured[pdf]
 uvicorn
 urllib3==2.5.0
+langchain_ollama

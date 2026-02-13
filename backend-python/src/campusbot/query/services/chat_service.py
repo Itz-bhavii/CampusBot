@@ -24,20 +24,21 @@ import os
 import logging
 import chromadb
 import logging.config
-import google.generativeai as genai
+# import google.generativeai as genai
 from dotenv import load_dotenv
 from campusbot.common import clients
 from ..models.QueryResponse import QueryResponse
 from campusbot.common.campus_logger import LOGGING_CONFIG
 from sentence_transformers.cross_encoder import CrossEncoder
 
+from langchain_ollama import OllamaLLM
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
-API_KEY = os.getenv("API_KEY")  # Gemini API key
+# API_KEY = os.getenv("API_KEY")  # Gemini API key
 
 # ===== INITIALIZATION =====
 try:
@@ -56,9 +57,14 @@ try:
     modelCrossEncoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
     
     # Configure Gemini API
-    genai.configure(api_key=API_KEY)
+    # genai.configure(api_key=API_KEY)
     # Note: 'gemini-2.5-flash' may auto-resolve to available version
-    generation_model = genai.GenerativeModel("gemini-2.5-flash")
+
+
+    #replacing gemini with ollama
+    # generation_model = genai.GenerativeModel("gemini-2.5-flash")
+
+    generation_model = OllamaLLM(model="qwen2.5:7b-instruct-q4_K_M",base_url="http://host.docker.internal:11434")
     
     # Connect to ChromaDB vector database
     chromaClient = chromadb.HttpClient(host="chromadb",port=8000)
@@ -178,10 +184,13 @@ def getQuestionAndHistory(question,chatHistory):
         Standalone Question:"""
         
         # Call Gemini to reformulate
-        response = generation_model.generate_content(
-            contents=[condense_prompt]
-        )
-        standalone_question = response.text.strip()
+        # response = generation_model.generate_content(
+        #     contents=[condense_prompt]
+        # )
+        response = generation_model.invoke(condense_prompt)
+
+        # standalone_question = response.text.strip()
+        standalone_question = response.strip()
         logger.info(f"Generated standalone question: {standalone_question}")
 
     # STAGE 2: Query Expansion
@@ -192,7 +201,7 @@ def getQuestionAndHistory(question,chatHistory):
     # Search with all query variations, get top 5 per query
     results = collection.query(
         query_texts=expandedQueries,  # List of query strings
-        n_results=5  # Top 5 results per query
+        n_results=5   # Top 5 results per query
     )
     
     # Deduplicate results (same chunk might match multiple queries)
@@ -234,12 +243,14 @@ def getQuestionAndHistory(question,chatHistory):
 
     # Call Gemini for final answer generation
     logger.info("Calling final generation model.")
-    final_response = generation_model.generate_content(
-        contents=[final_prompt]
-    )
+    # final_response = generation_model.generate_content(
+    #     contents=[final_prompt]
+    # )
+
+    final_response = generation_model.invoke(final_prompt)
     
     # Return answer wrapped in response model
-    return QueryResponse(message=final_response.text.strip())
+    return QueryResponse(message=final_response.strip())
 
 
 def getAlternateQuestions(standalone_question : str) -> list:
@@ -293,12 +304,14 @@ def getAlternateQuestions(standalone_question : str) -> list:
     """
 
     # Call Gemini to generate alternatives
-    expandedQueryRaw = generation_model.generate_content(
-        contents=queryExpansionPrompt
-    )
+    # expandedQueryRaw = generation_model.generate_content(
+    #     contents=queryExpansionPrompt
+    # )
+    
+    expandedQueryRaw = generation_model.invoke(queryExpansionPrompt)
 
     # Parse response into list of questions
     # Assumes Gemini returns questions separated by double newlines
-    questions = list(expandedQueryRaw.text.strip().split("\n\n"))
+    questions = list(expandedQueryRaw.strip().split("\n\n"))
     
     return questions
