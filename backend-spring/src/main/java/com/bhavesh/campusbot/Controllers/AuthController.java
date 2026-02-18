@@ -22,6 +22,7 @@ public class AuthController {
     
     @PostMapping("/authenticate")
     public String generateToken(@RequestBody JwtAuthDTO details){
+        System.out.println(details.getUsername() + details.getPassword());
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(details.getUsername(), details.getPassword()));
 
         String token = jwtUtils.generateToken(details.getUsername());

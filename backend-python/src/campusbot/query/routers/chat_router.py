@@ -10,7 +10,7 @@ import logging.config
 from fastapi import APIRouter
 from campusbot.common.campus_logger import LOGGING_CONFIG
 from ..models.QueryRequest import QueryRequest 
-from ..services.chat_service import getQuestionAndHistory
+from ..services.chat_service_ai import getQuestionAndHistory
 
 # Create FastAPI router for chat endpoints
 router = APIRouter()

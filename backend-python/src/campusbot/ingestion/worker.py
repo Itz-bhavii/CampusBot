@@ -43,7 +43,7 @@ def log(message):
 
 log("=== INGESTION WORKER STARTING ===")
 log("Importing parser module...")
-from . import parser  # Local parser module for document extraction
+from . import parser_ai  # Local parser module for document extraction
 log("Parser module imported successfully")
 
 import tempfile  # For temporary file storage during processing
@@ -360,7 +360,7 @@ def parse(fileNameWithPath:str,filename:str,documentId:str):
     
     # Extract text and metadata from document
     # Returns parallel lists: documents[i] corresponds to metadataToAdd[i]
-    documentsToAdd,metadataToAdd = parser.parseFile(fileNameWithPath,filename,documentId)
+    documentsToAdd,metadataToAdd = parser_ai.parseFile(fileNameWithPath,filename,documentId)
     
     # Store extracted text and metadata in ChromaDB
     storeText(documentsToAdd,metadataToAdd)

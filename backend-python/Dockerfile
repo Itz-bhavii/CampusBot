@@ -40,6 +40,9 @@ RUN pip install --no-cache-dir -r src/requirements.txt
 # Download NLTK data non-interactively
 RUN python -c "import nltk; nltk.download(['punkt', 'punkt_tab', 'averaged_perceptron_tagger', 'averaged_perceptron_tagger_eng'])"
 
+# Download spaCy model for parser_ai.py
+RUN python -m spacy download en_core_web_sm
+
 # Copy the src directory and set ownership
 COPY --chown=nonroot:nonroot ./src /app/src
 
