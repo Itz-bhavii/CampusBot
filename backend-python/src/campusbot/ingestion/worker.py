@@ -107,7 +107,7 @@ try:
     # Collection stores vectors + metadata for all uploaded documents
     collection = chromaClient.get_or_create_collection(
         name="practice_collection",
-        embedding_function=model  # Automatic embedding generation on add()
+        embedding_function=model  # Automatic embedding generation on add() # type: ignore
     )
     log("ChromaDB connected successfully")
     
@@ -418,7 +418,7 @@ def downloadAndStoreFileLocallyUsingMinio(objectName : str,documentId:str):
             # bucket_name: which bucket to download from
             # object_name: which file in the bucket
             # filename: where to save locally
-            botoClient.download_file(BUCKET_NAME,objectName,fileNameWithPath)
+            botoClient.download_file(BUCKET_NAME,objectName,fileNameWithPath) # type: ignore
             log(f"File downloaded successfully to: {fileNameWithPath}")
             
             # Parse document and store in ChromaDB
