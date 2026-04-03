@@ -61,3 +61,7 @@ replay_pid*.log
 !README.md
 *.txt
 !requrements.txt
+!conversation.md
+
+# Firebase service account key (NEVER commit this)
+serviceAccountKey.json

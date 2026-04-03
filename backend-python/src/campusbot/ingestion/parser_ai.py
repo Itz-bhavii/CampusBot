@@ -737,15 +737,15 @@ def process_table_element(
     
     if pgNum and fileNameWithPath.lower().endswith('.pdf'):
         try:
-            dfs = tabula.read_pdf(fileNameWithPath, pages=pgNum, silent=True)
+            dfs = tabula.read_pdf(fileNameWithPath, pages=pgNum, silent=True) # type: ignore
             
             for df in dfs:
                 # Skip empty or tiny DataFrames (noise from tabula)
-                if df.empty or len(df) < 1:
+                if df.empty or len(df) < 1: # type: ignore
                     continue
                 
                 # Clean DataFrame: drop all-NaN columns and rows
-                df = df.dropna(how='all', axis=0).dropna(how='all', axis=1)
+                df = df.dropna(how='all', axis=0).dropna(how='all', axis=1) # type: ignore
                 if df.empty:
                     continue
                 

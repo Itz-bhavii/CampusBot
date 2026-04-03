@@ -113,6 +113,7 @@ services:
     environment:
       - CHROMA_HOST=${CHROMA_HOST}
       - CHROMA_PORT=${CHROMA_PORT}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - chromadb
       - minio-setup

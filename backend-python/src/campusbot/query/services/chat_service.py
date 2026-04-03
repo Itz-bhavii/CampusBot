@@ -24,7 +24,7 @@ import os
 import logging
 import chromadb
 import logging.config
-# import google.generativeai as genai
+import google.generativeai as genai
 from dotenv import load_dotenv
 from campusbot.common import clients
 from ..models.QueryResponse import QueryResponse
@@ -38,15 +38,9 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
-# API_KEY = os.getenv("API_KEY")  # Gemini API key
 
 # ===== INITIALIZATION =====
 try:
-    # Validate API key exists
-    if not API_KEY:
-        logger.critical("API_KEY value not set")
-        raise ValueError("API_KEY not set")
-
     # Load embedding model (same model used during ingestion)
     # Ensures query vectors match document vectors
     model = clients.getModel()
@@ -56,15 +50,24 @@ try:
     # Scores question-document pairs directly (slower but more precise)
     modelCrossEncoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
     
-    # Configure Gemini API
-    # genai.configure(api_key=API_KEY)
-    # Note: 'gemini-2.5-flash' may auto-resolve to available version
+    # ---- GENERATION MODEL: Ollama (primary) + Gemini (fallback) ----
+    # Ollama: local, free, zero API cost. Primary for all queries.
+    # Gemini: cloud fallback when Ollama is unavailable or errors out.
+    ollama_model = OllamaLLM(
+        model="qwen2.5:7b-instruct-q4_K_M",
+        base_url="http://host.docker.internal:11434"
+    )
+    logger.info("Ollama generation model connected (qwen2.5:7b)")
 
-
-    #replacing gemini with ollama
-    # generation_model = genai.GenerativeModel("gemini-2.5-flash")
-
-    generation_model = OllamaLLM(model="qwen2.5:7b-instruct-q4_K_M",base_url="http://host.docker.internal:11434")
+    # Gemini fallback — only used when Ollama fails
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    gemini_model = None
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY) # type: ignore
+        gemini_model = genai.GenerativeModel("gemini-2.0-flash") # type: ignore
+        logger.info("Gemini fallback model configured (gemini-2.0-flash)")
+    else:
+        logger.warning("GEMINI_API_KEY not set — Gemini fallback disabled")
     
     # Connect to ChromaDB vector database
     chromaClient = chromadb.HttpClient(host="chromadb",port=8000)
@@ -73,12 +76,34 @@ try:
     # Same collection name as ingestion worker
     collection = chromaClient.get_or_create_collection(
         name="practice_collection",
-        embedding_function=model  # Auto-embeds queries during search
+        embedding_function=model  # Auto-embeds queries during search # type: ignore
     )
 
 except Exception as e:
     logger.critical("Failed during application initialization.", exc_info=True)
     exit(1)
+
+
+# ===== LLM INVOCATION WRAPPER — Ollama primary, Gemini fallback =====
+def invoke_llm(prompt: str) -> str:
+    """
+    Tries Ollama first (free, local). If Ollama fails for any reason
+    (timeout, connection refused, OOM), falls back to Gemini API silently.
+    """
+    try:
+        result = ollama_model.invoke(prompt)
+        return result.strip()
+    except Exception as ollama_err:
+        logger.warning(f"Ollama failed ({ollama_err}), falling back to Gemini")
+        if gemini_model:
+            try:
+                response = gemini_model.generate_content(contents=[prompt])
+                return response.text.strip()
+            except Exception as gemini_err:
+                logger.error(f"Gemini fallback also failed: {gemini_err}")
+                raise gemini_err
+        else:
+            raise ollama_err
 
 def getQuestionAndHistory(question,chatHistory):
     """
@@ -183,13 +208,8 @@ def getQuestionAndHistory(question,chatHistory):
 
         Standalone Question:"""
         
-        # Call Gemini to reformulate
-        # response = generation_model.generate_content(
-        #     contents=[condense_prompt]
-        # )
-        response = generation_model.invoke(condense_prompt)
-
-        # standalone_question = response.text.strip()
+        # Call LLM to reformulate
+        response = invoke_llm(condense_prompt)
         standalone_question = response.strip()
         logger.info(f"Generated standalone question: {standalone_question}")
 
@@ -206,7 +226,7 @@ def getQuestionAndHistory(question,chatHistory):
     
     # Deduplicate results (same chunk might match multiple queries)
     uniqueAns = set()
-    for bigList in results["documents"]:
+    for bigList in results["documents"]: # type: ignore
         for data in bigList:
             uniqueAns.add(data)
     uniqueAns = list(uniqueAns)
@@ -241,13 +261,9 @@ def getQuestionAndHistory(question,chatHistory):
 
     Answer:"""
 
-    # Call Gemini for final answer generation
+    # Call LLM for final answer generation
     logger.info("Calling final generation model.")
-    # final_response = generation_model.generate_content(
-    #     contents=[final_prompt]
-    # )
-
-    final_response = generation_model.invoke(final_prompt)
+    final_response = invoke_llm(final_prompt)
     
     # Return answer wrapped in response model
     return QueryResponse(message=final_response.strip())
@@ -303,12 +319,8 @@ def getAlternateQuestions(standalone_question : str) -> list:
     5. ...
     """
 
-    # Call Gemini to generate alternatives
-    # expandedQueryRaw = generation_model.generate_content(
-    #     contents=queryExpansionPrompt
-    # )
-    
-    expandedQueryRaw = generation_model.invoke(queryExpansionPrompt)
+    # Call LLM to generate alternatives
+    expandedQueryRaw = invoke_llm(queryExpansionPrompt)
 
     # Parse response into list of questions
     # Assumes Gemini returns questions separated by double newlines

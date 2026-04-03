@@ -23,8 +23,21 @@ RUN mkdir -p /home/nonroot/nltk_data && \
 ENV NLTK_DATA /home/nonroot/nltk_data
 ENV HUGGINGFACE_HUB_CACHE /home/nonroot/.cache/huggingface
 
-# Install system dependencies for python-magic, libGL, and libgthread
-RUN apt-get update && apt-get install -y libmagic1 libgl1 libglib2.0-0 && ldconfig && rm -rf /var/lib/apt/lists/*
+# Install system dependencies:
+# - libmagic1: MIME type detection (python-magic)
+# - libgl1, libglib2.0-0: OpenCV / libGL dependencies
+# - tesseract-ocr: OCR engine required by unstructured[pdf] hi_res strategy
+# - poppler-utils: PDF-to-image conversion used by unstructured internally
+# - default-jre-headless: Java runtime required by tabula-py for PDF table extraction
+RUN apt-get update && apt-get install -y \
+    libmagic1 \
+    libgl1 \
+    libglib2.0-0 \
+    tesseract-ocr \
+    poppler-utils \
+    default-jre-headless \
+    && ldconfig \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install CPU-only PyTorch first to prevent massive GPU library downloads
 # This is the key step to reduce image size

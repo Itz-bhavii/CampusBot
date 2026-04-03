@@ -91,12 +91,13 @@ from collections import defaultdict
 from functools import lru_cache
 from typing import List, Dict, Tuple, Optional, Set
 from dotenv import load_dotenv
-from rank_bm25 import BM25Okapi
+from rank_bm25 import BM25Okapi # type: ignore
 from campusbot.common import clients
 from ..models.QueryResponse import QueryResponse
 from campusbot.common.campus_logger import LOGGING_CONFIG
 from sentence_transformers.cross_encoder import CrossEncoder
 from langchain_ollama import OllamaLLM
+import google.generativeai as genai
 
 
 # ===========================================================================================
@@ -136,15 +137,24 @@ try:
     modelCrossEncoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
     logger.info("Cross-encoder model loaded (ms-marco-MiniLM-L-6-v2)")
 
-    # ---- GENERATION MODEL (Ollama — runs locally, FREE) ----
-    # Qwen 2.5 7B Instruct: Chinese-developed but excellent at English
-    # q4_K_M quantization: 4-bit, keeps ~95% quality at 4x less memory
-    # Runs on your local Ollama instance — zero API cost
-    generation_model = OllamaLLM(
+    # ---- GENERATION MODEL: Ollama (primary) + Gemini (fallback) ----
+    # Ollama: local, free, zero API cost. Primary for all queries.
+    # Gemini: cloud fallback when Ollama is unavailable or errors out.
+    ollama_model = OllamaLLM(
         model="qwen2.5:7b-instruct-q4_K_M",
         base_url="http://host.docker.internal:11434"
     )
     logger.info("Ollama generation model connected (qwen2.5:7b)")
+
+    # Gemini fallback — only used when Ollama fails
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    gemini_model = None
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY) # type: ignore
+        gemini_model = genai.GenerativeModel("gemini-2.0-flash") # type: ignore
+        logger.info("Gemini fallback model configured (gemini-2.0-flash)")
+    else:
+        logger.warning("GEMINI_API_KEY not set — Gemini fallback disabled")
 
     # ---- CHROMADB CONNECTION ----
     # Same collection name as ingestion worker — "practice_collection"
@@ -152,13 +162,37 @@ try:
     chromaClient = chromadb.HttpClient(host="chromadb", port=8000)
     collection = chromaClient.get_or_create_collection(
         name="practice_collection",
-        embedding_function=model
+        embedding_function=model # type: ignore
     )
     logger.info("ChromaDB connected (practice_collection)")
 
 except Exception as e:
     logger.critical(f"Failed during initialization: {e}", exc_info=True)
     exit(1)
+
+
+# ===========================================================================================
+# LLM INVOCATION WRAPPER — Ollama primary, Gemini fallback
+# ===========================================================================================
+def invoke_llm(prompt: str) -> str:
+    """
+    Tries Ollama first (free, local). If Ollama fails for any reason
+    (timeout, connection refused, OOM), falls back to Gemini API silently.
+    """
+    try:
+        result = ollama_model.invoke(prompt)
+        return result.strip()
+    except Exception as ollama_err:
+        logger.warning(f"Ollama failed ({ollama_err}), falling back to Gemini")
+        if gemini_model:
+            try:
+                response = gemini_model.generate_content(contents=[prompt])
+                return response.text.strip()
+            except Exception as gemini_err:
+                logger.error(f"Gemini fallback also failed: {gemini_err}")
+                raise gemini_err
+        else:
+            raise ollama_err
 
 
 # ===========================================================================================
@@ -264,7 +298,7 @@ class BM25Index:
             
             self._corpus_docs = all_data["documents"]
             self._corpus_ids = all_data["ids"]
-            self._corpus_metadatas = all_data["metadatas"] if all_data["metadatas"] else [{} for _ in self._corpus_docs]
+            self._corpus_metadatas = all_data["metadatas"] if all_data["metadatas"] else [{} for _ in self._corpus_docs] # type: ignore
             
             # Tokenize entire corpus for BM25
             tokenized_corpus = [self._tokenize(doc) for doc in self._corpus_docs]
@@ -504,7 +538,7 @@ Original Question: "{standalone_question}"
 5."""
 
     try:
-        expandedQueryRaw = generation_model.invoke(queryExpansionPrompt)
+        expandedQueryRaw = invoke_llm(queryExpansionPrompt)
         
         # Parse numbered list from LLM response
         # Handles: "1. text", "1) text", "- text", plain lines
@@ -957,8 +991,8 @@ Follow-up Question: {question}
 Standalone Question:"""
         
         try:
-            response = generation_model.invoke(condense_prompt)
-            standalone_question = response.strip()
+            response = invoke_llm(condense_prompt)
+            standalone_question = response
             # Clean up any "Standalone Question:" prefix the LLM might add
             standalone_question = re.sub(r'^(?:Standalone\s+)?Question:\s*', '', standalone_question, flags=re.IGNORECASE)
             logger.info(f"LLM reformulated: {standalone_question}")
@@ -1005,7 +1039,7 @@ Standalone Question:"""
                     dense_results.append((
                         doc_id,
                         dense_raw["documents"][q_idx][doc_idx],
-                        dense_raw["metadatas"][q_idx][doc_idx] if dense_raw["metadatas"] else {}
+                        dense_raw["metadatas"][q_idx][doc_idx] if dense_raw["metadatas"] else {} # type: ignore
                     ))
     
     logger.info(f"Dense retrieval: {len(dense_results)} unique results")
@@ -1135,8 +1169,8 @@ ANSWER:"""
 
     try:
         logger.info("Calling generation model for final answer")
-        final_response = generation_model.invoke(final_prompt)
-        answer = final_response.strip()
+        final_response = invoke_llm(final_prompt)
+        answer = final_response
     except Exception as e:
         logger.error(f"Generation model failed: {e}")
         answer = "I'm sorry, I encountered an error generating a response. Please try again."
